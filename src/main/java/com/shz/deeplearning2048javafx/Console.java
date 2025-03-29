@@ -1,18 +1,32 @@
 package com.shz.deeplearning2048javafx;
 
+import com.shz.deeplearning2048javafx.game.Game;
+import com.shz.deeplearning2048javafx.network.Action;
+import com.shz.deeplearning2048javafx.network.Environment;
+import com.shz.deeplearning2048javafx.network.GameState;
+import com.shz.deeplearning2048javafx.network.util.GameStateUtil;
+import com.shz.deeplearning2048javafx.network.util.NetworkUtil;
+import org.deeplearning4j.nn.multilayer.MultiLayerNetwork;
+import org.deeplearning4j.rl4j.learning.sync.qlearning.discrete.QLearningDiscreteDense;
+import org.nd4j.linalg.api.ndarray.INDArray;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.io.IOException;
 import java.util.Random;
 import java.util.Scanner;
-
 public class Console {
+
     private static final int SIZE = 4;
     private static final int WINNING_TILE = 2048;
+    private static final Logger LOG = LoggerFactory.getLogger(Console.class);
     private static int[][] board;
     private static int score;
     private static boolean gameOver;
 
     public static void main(String[] args) {
         Scanner scanner = new Scanner(System.in);
+        final Game game = new Game();
         System.out.println("Welcome to the 2048 Game by ProjectGurukul!");
         System.out.println("Use the following keys to move:");
         System.out.println("w - Up");
@@ -72,6 +86,43 @@ public class Console {
             }
         } while (true);
     }
+
+    private static void evaluateNetwork(Game game, String randomNetworkName) {
+        final MultiLayerNetwork multiLayerNetwork = NetworkUtil.loadNetwork(randomNetworkName);
+        int highscore = 0;
+        for (int i = 0; i < 10000; i++) {
+            int score = 0;
+            while (game.isOngoing()) {
+                try {
+                    final GameState state = game.buildStateObservation();
+                    final INDArray output = multiLayerNetwork.output(state.getMatrix(), false);
+                    double[] data = output.data().asDouble();
+                    int maxValueIndex = GameStateUtil.getMaxValueIndex(data);
+
+                    game.changeDirection(Action.getActionByIndex(maxValueIndex));
+                    game.move();
+                    score = game.getScore();
+
+                    // Needed so that we can see easier what is the game doing
+                    NetworkUtil.waitMs(0);
+                } catch (final Exception e) {
+                    LOG.error(e.getMessage(), e);
+                    Thread.currentThread().interrupt();
+                    game.endGame();
+                }
+            }
+
+            LOG.info("Score of iteration '{}' was '{}'", i, score);
+            if (score > highscore) {
+                highscore = score;
+            }
+
+            // Reset the game
+            game.initializeGame();
+        }
+        LOG.info("Finished evaluation of the network, highscore was '{}'", highscore);
+    }
+
 
     private static void initializeBoard() {
         board = new int[SIZE][SIZE]; // Create the game board

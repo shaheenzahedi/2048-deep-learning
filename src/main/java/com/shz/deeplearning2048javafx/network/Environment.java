@@ -1,7 +1,7 @@
-package com.shz.deeplearning2048javafx;
+package com.shz.deeplearning2048javafx.network;
 
-import com.lilium.snake.game.Game;
-import com.lilium.snake.network.util.NetworkUtil;
+import com.shz.deeplearning2048javafx.game.Game;
+import com.shz.deeplearning2048javafx.network.util.NetworkUtil;
 import org.deeplearning4j.gym.StepReply;
 import org.deeplearning4j.rl4j.mdp.MDP;
 import org.deeplearning4j.rl4j.space.DiscreteSpace;
@@ -12,7 +12,7 @@ import org.deeplearning4j.rl4j.space.ObservationSpace;
  *
  * @author mirza
  */
-public class Environment implements MDP<GameState, Integer, DiscreteSpace> {
+public class Environment implements MDP<com.shz.deeplearning2048javafx.network.GameState, Integer, DiscreteSpace> {
     // Size is 4 as we have 4 actions
     private final DiscreteSpace actionSpace = new DiscreteSpace(4);
     private final Game game;
